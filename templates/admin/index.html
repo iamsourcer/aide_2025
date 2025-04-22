@@ -1,0 +1,47 @@
+{% extends 'unfold/layouts/base_simple.html' %}
+
+{% load unfold %}
+
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block title %}
+    {% if subtitle %}
+        {{ subtitle }} |
+    {% endif %}
+
+    {{ title }} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">
+            {{ site_header|default:_('Django administration') }}
+        </a>
+    </h1>
+{% endblock %}
+
+{% block content %}
+	<div class="flex flex-col gap-8 lg:flex-row">
+		{% for counter in counters %}
+		    {% component "unfold/components/card.html" %}
+							{% component "unfold/components/text.html" %}
+								{{ counter.label }}									
+							{% endcomponent %}
+			
+							{% component "unfold/components/title.html" %}
+								{{ counter.value }}
+							{% endcomponent %}
+		    {% endcomponent %}
+		{% endfor %}
+	</div>
+	
+	<div class="flex flex-col gap-8 lg:flex-row mt-3">
+		{% component "unfold/components/card.html" with title="Links per status" %}
+			{% component "unfold/components/chart/bar.html" with data=chart_links_per_status %}{% endcomponent %}
+		{% endcomponent %}	
+	</div>
+
+
+{% endblock %}
+
