@@ -1,0 +1,44 @@
+# TODO
+
+* Terminar las notes como inline en el candidato
+  - Mostrar projecto en cada nota
+  - revisar que mas se puede agregar 
+  - borrar, editar ??? Actions? ???
+
+* todo
+  - chequear fieldsets para cada uno de las partes del admin
+
+  - Dashboard
+   - Mejorar las tarjetas como en la demo 
+   - Agregar un segundo grafico relacionado a los tags (por c/u ver cantidad de candidatos)
+     Este grafico iria debajo del de links achicando la columna para poder poner otro a la 
+     derecha
+   - Agregar un grafico de numero links x projecto (barra horizontal)
+
+* Lo ponemos en produccion 
+
+
+# revisar Link (con relacion a las notes) ... si te animas cagon
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Si estoy logueado como Admin (Master) me gustaria ver todos los modelos en mi sidebar (izq)
+* Cambiar la manera en la  que se muestra el atajo para agregar o crear un nuevo objecto en un campo de relacion (forms del admin) 
+
+  - https://github.com/unfoldadmin/django-unfold/issues/1126
+  - https://unfoldadmin.com/blog/modal-windows-alpinejs-htmx/

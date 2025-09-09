@@ -27,10 +27,10 @@ def dashboard_callback(request, context):
 
     context.update({
         "counters": [
-            {"label": "# Candidates", "value": candidates},
-            {"label": "# Companies", "value": companies},
-            {"label": "# Projects", "value": projects},
-            {"label": "# Links", "value": links},
+            {"label": "Candidates", "value": candidates},
+            {"label": "Links", "value": links},
+            {"label": "Projects", "value": projects},
+            {"label": "Companies", "value": companies},
             ],
         "chart_links_per_status": json.dumps(
                          {

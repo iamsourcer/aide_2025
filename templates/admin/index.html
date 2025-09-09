@@ -26,7 +26,11 @@
 		{% for counter in counters %}
 		    {% component "unfold/components/card.html" %}
 							{% component "unfold/components/text.html" %}
-								{{ counter.label }}									
+								{% if not user.is_superuser %}
+									My
+								{% endif %}	
+								{{ counter.label }}		
+															
 							{% endcomponent %}
 			
 							{% component "unfold/components/title.html" %}

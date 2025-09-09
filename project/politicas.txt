@@ -1,0 +1,12 @@
+- Acciones: Crear / Editar / Borrar
+
+### notes
+ - CREAR: todos
+ - EDITAR: owner
+ - BORRAR: nadie
+
+
+### links
+ - CREAR: todos
+ - EDITAR: todos, Solo el Status
+ - BORRAR: owner y sin notas 

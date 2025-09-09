@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'import_export',
+    'ninja',
+    'api',
+    'django_quill',
 ]
 
 MIDDLEWARE = [
@@ -151,25 +154,30 @@ UNFOLD = {
                         "link": reverse_lazy("admin:app_candidate_changelist"),
                     },
                     {
-                        "title": "Company contact",
-                        "icon": "source_environment",
-                        "link": reverse_lazy("admin:app_companycontact_changelist"),
-                    },
-                    {
-                        "title": "Company",
-                        "icon": "source_environment",
-                        "link": reverse_lazy("admin:app_company_changelist"),
+                        "title": "Link",
+                        "icon": "link",
+                        "link": reverse_lazy("admin:app_link_changelist"),
                     },
                     {
                         "title": "Project",
                         "icon": "inventory",
                         "link": reverse_lazy("admin:app_project_changelist"),
                     },
+                    # {
+                    #     "title": "Company contact",
+                    #     "icon": "source_environment",
+                    #     "link": reverse_lazy("admin:app_companycontact_changelist"),
+                    # },
                     {
-                        "title": "Link",
-                        "icon": "link",
-                        "link": reverse_lazy("admin:app_link_changelist"),
+                        "title": "Company",
+                        "icon": "source_environment",
+                        "link": reverse_lazy("admin:app_company_changelist"),
                     },
+                    {
+                        "title": "Notes",
+                        "icon": "edit_square",
+                        "link": reverse_lazy("admin:app_note_changelist"),
+                    }
                 ],
             },
         ],
