@@ -25,12 +25,14 @@ def dashboard_callback(request, context):
         projects = Project.objects.all().count()
         links = Link.objects.all().count()
 
+    my = "My " if not request.user.is_superuser else ""
+
     context.update({
         "counters": [
-            {"label": "Candidates", "value": candidates},
-            {"label": "Links", "value": links},
-            {"label": "Projects", "value": projects},
-            {"label": "Companies", "value": companies},
+            {"label": my + "Candidates", "value": candidates or '-'},
+            {"label": my + "Links", "value": links or '-'},
+            {"label": my + "Projects", "value": projects or '-'},
+            {"label": my + "Companies", "value": companies or '-'},
             ],
         "chart_links_per_status": json.dumps(
                          {

@@ -1,7 +1,7 @@
+
 {% extends 'unfold/layouts/base_simple.html' %}
 
 {% load unfold %}
-
 
 {% block breadcrumbs %}{% endblock %}
 
@@ -24,18 +24,14 @@
 {% block content %}
 	<div class="flex flex-col gap-8 lg:flex-row">
 		{% for counter in counters %}
-		    {% component "unfold/components/card.html" %}
-							{% component "unfold/components/text.html" %}
-								{% if not user.is_superuser %}
-									My
-								{% endif %}	
-								{{ counter.label }}		
-															
-							{% endcomponent %}
-			
-							{% component "unfold/components/title.html" %}
-								{{ counter.value }}
-							{% endcomponent %}
+		{% component "unfold/components/card.html" with label='Last month' footer='jkhkjh' %}
+				{% component "unfold/components/text.html" %}
+					{{ counter.label }}		
+				{% endcomponent %}
+	
+				{% component "unfold/components/title.html" %}
+					{{ counter.value }}
+				{% endcomponent %}
 		    {% endcomponent %}
 		{% endfor %}
 	</div>
