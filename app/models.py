@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django_quill.fields import QuillField
+
 
 
 
@@ -192,7 +192,6 @@ class Link(models.Model):
 class Note(models.Model):
 
     text = models.TextField()
-    #text = QuillField()
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name='notes')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notes')
     created_at = models.DateTimeField(auto_now_add=True)

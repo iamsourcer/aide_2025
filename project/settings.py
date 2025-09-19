@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'import_export',
     'ninja',
     'api',
-    'django_quill',
 ]
 
 MIDDLEWARE = [
