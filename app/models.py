@@ -191,8 +191,8 @@ class Link(models.Model):
 
 class Note(models.Model):
 
-    #text = models.TextField()
-    text = QuillField()
+    text = models.TextField()
+    #text = QuillField()
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name='notes')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notes')
     created_at = models.DateTimeField(auto_now_add=True)

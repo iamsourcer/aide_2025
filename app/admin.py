@@ -1,4 +1,5 @@
 from django import forms
+from django.db import models
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html_join, format_html
@@ -451,10 +452,16 @@ class NotesAdmin(ModelAdmin):
     exclude = ["user"]
     readonly_fields = []
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)    
+    formfield_overrides = {
+        models.TextField: {
+            "widget": WysiwygWidget,
+        }
+    }
+
+    # Corregimos la version readonly del Wysiswyg    
     @admin.display(description="Text")
-    def quillField_readonly_text(self, obj):
-        return format_html(obj.text.html)
+    def wysiswyg_readonly_text(self, obj):
+        return format_html(obj.text)
 
     @admin.display(description="Owner")
     def get_owner(self, obj):
@@ -488,21 +495,21 @@ class NotesAdmin(ModelAdmin):
             return True
         return False
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)
+    # Corregimos la version readonly del Wysiswyg 
     def get_readonly_fields(self, request, obj=None):
         readonly = super().get_readonly_fields(request, obj)
         
         if not obj:
             return [] # por default no hay campos readonly
         if obj.user != request.user:
-            if "quillField_readonly_text" not in readonly: 
-                readonly.append("quillField_readonly_text")
+            if "wysiswyg_readonly_text" not in readonly: 
+                readonly.append("wysiswyg_readonly_text")
         else:
-            if "quillField_readonly_text" in readonly: 
-                readonly.remove("quillField_readonly_text")
+            if "wysiswyg_readonly_text" in readonly: 
+                readonly.remove("wysiswyg_readonly_text")
         return readonly
 
-    # Excluimos "text" original porque ya estamos mostrando el QuillField en version readonly
+    # Excluimos "text" original porque ya estamos mostrando el Wysiswyg en version readonly
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
         
@@ -524,11 +531,11 @@ class LinkNotesInline(TabularInline):
     
     #fields = ['text']
     exclude = ['user', 'text']
-    readonly_fields = ['quillField_readonly_text', 'edit_button']
+    readonly_fields = ['wysiswyg_readonly_text', 'edit_button']
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)    
+    # Corregimos la version readonly del Wysiswyg (por default muestra JSON)    
     @admin.display(description="Text")
-    def quillField_readonly_text(self, obj):
+    def wysiswyg_readonly_text(self, obj):
         return format_html(obj.text.html)
     
     @admin.display(description="Edit")
@@ -556,17 +563,17 @@ class LinkNotesInline(TabularInline):
             return True   
         return False
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)
+    # Corregimos la version readonly del Wysiswyg (por default muestra JSON)
     # def get_readonly_fields(self, request, obj=None):
     #     readonly = super().get_readonly_fields(request, obj)
 
-    #     if obj and "quillField_readonly_text" not in readonly: 
-    #         print('[LOG] - LinkNotesInline.get_readonly_fields: quillField Readonly Mejorado')
+    #     if obj and "wysiswyg_readonly_text" not in readonly: 
+    #         print('[LOG] - LinkNotesInline.get_readonly_fields: Wysiswyg Readonly Mejorado')
     #         # este append no hace nada, Investigar!
-    #         readonly.append("quillField_readonly_text")
+    #         readonly.append("wysiswyg_readonly_text")
     #     return readonly
 
-    # Excluimos "text" original porque ya estamos mostrando el QuillField en version readonly
+    # Excluimos "text" original porque ya estamos mostrando el Wysiswyg en version readonly
     # def get_exclude(self, request, obj=None):
     #     exclude = super().get_exclude(request, obj)
         
