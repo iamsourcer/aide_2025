@@ -1,1 +1,42 @@
-*sqlite3
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+.env
+
+# Django specific files
+*.log
+local_settings.py
+db.sqlite3
+
+# Media and static files (if not versioning media files)
+media/
+staticfiles/
+
+# IDE/editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS and Windows system files
+.DS_Store
+Thumbs.db
+
+# Test and coverage reports
+.coverage
+.tox/
+htmlcov/
+nosetests.xml
+coverage.xml
+
+# Miscellaneous
+*.pot
+*.mo
+*.egg-info/
+.eggs/

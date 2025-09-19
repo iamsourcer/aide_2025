@@ -1,7 +1,12 @@
-.column-text  {
+.column-text,
+.column-quillField_readonly_text,
+.column-edit_button {
     display: none;
 }
 
-.column-quillField_readonly_text {
-    display: none;
+td.field-edit_button > div {
+    padding: 0;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
 }

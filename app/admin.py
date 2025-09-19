@@ -524,12 +524,19 @@ class LinkNotesInline(TabularInline):
     
     #fields = ['text']
     exclude = ['user', 'text']
-    readonly_fields = ['quillField_readonly_text']
+    readonly_fields = ['quillField_readonly_text', 'edit_button']
 
     # Corregimos la version readonly del QuillField (por default muestra JSON)    
     @admin.display(description="Text")
     def quillField_readonly_text(self, obj):
         return format_html(obj.text.html)
+    
+    @admin.display(description="Edit")
+    def edit_button(self, obj):
+        url = reverse('admin:app_note_change', args=[obj.id])
+        
+        return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
+
 
     def has_add_permission(self, request, obj=None):
         return False
