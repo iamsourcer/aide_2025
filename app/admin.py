@@ -1,4 +1,5 @@
 from django import forms
+from django.db import models
 from django.contrib import admin, messages
 from django.utils import timezone
 from django.utils.html import format_html_join, format_html
@@ -188,13 +189,23 @@ class CandidateLinkInline(TabularInline):
             return self.readonly_fields + ('project',)
         return self.readonly_fields
 
-class CandidateNoteInline(NonrelatedStackedInline):
+class CandidateNoteInline(NonrelatedTabularInline):
     model = Note
-    fields = ["link", "text"]  # Ignore property to display all fields
-    readonly_fields = ['link']
+    exclude = ["link", "text", "user"]  # Ignore property to display all fields
+
+    readonly_fields = ['wysiswyg_readonly_text', 'edit_button']
     extra = 0
     tab = True
     
+    # Corregimos la version readonly del Wysiswyg    
+    @admin.display(description="Text")
+    def wysiswyg_readonly_text(self, obj):
+        return mark_safe(obj.text)
+    
+    @admin.display(description="Edit")
+    def edit_button(self, obj):
+        url = reverse('admin:app_note_change', args=[obj.id])   
+        return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
 
 
     def get_form_queryset(self, obj):
@@ -220,11 +231,27 @@ class CandidateNoteInline(NonrelatedStackedInline):
         """
         pass 
     
+      # Puedo EDITAR solo si es Owner
     
+    def has_change_permission(self, request, obj=None):
+
+        if request.user.is_superuser:
+            return True
+
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        if not obj:
+            return True
+        if request.user.is_superuser:
+            return True   
+        return False
+  
     class Media:
         css = {    # ↓ ↓ ↓ ↓ ↓ ↓ Here ↓ ↓ ↓ ↓ ↓ ↓
             "all": ("app/css/link_note_admin.css",)
         }   
+
 
 @admin.register(Candidate)
 class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
@@ -451,10 +478,21 @@ class NotesAdmin(ModelAdmin):
     exclude = ["user"]
     readonly_fields = []
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)    
+    formfield_overrides = {
+        models.TextField: {
+            "widget": WysiwygWidget,
+        }
+    }
+
+    conditional_fields = {
+        "text": "user == true"
+    }
+
+    # Corregimos la version readonly del Wysiswyg    
     @admin.display(description="Text")
-    def quillField_readonly_text(self, obj):
-        return format_html(obj.text.html)
+    def wysiswyg_readonly_text(self, obj):
+        #return format_html(obj.text)
+        return mark_safe(obj.text)
 
     @admin.display(description="Owner")
     def get_owner(self, obj):
@@ -484,25 +522,23 @@ class NotesAdmin(ModelAdmin):
             return False
         if request.user.is_superuser:
             return True
-        if obj.link.user == request.user:
-            return True
         return False
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)
+    # Corregimos la version readonly del Wysiswyg 
     def get_readonly_fields(self, request, obj=None):
         readonly = super().get_readonly_fields(request, obj)
         
         if not obj:
             return [] # por default no hay campos readonly
         if obj.user != request.user:
-            if "quillField_readonly_text" not in readonly: 
-                readonly.append("quillField_readonly_text")
+            if "wysiswyg_readonly_text" not in readonly: 
+                readonly.append("wysiswyg_readonly_text")
         else:
-            if "quillField_readonly_text" in readonly: 
-                readonly.remove("quillField_readonly_text")
+            if "wysiswyg_readonly_text" in readonly: 
+                readonly.remove("wysiswyg_readonly_text")
         return readonly
 
-    # Excluimos "text" original porque ya estamos mostrando el QuillField en version readonly
+    # Excluimos "text" original porque ya estamos mostrando el Wysiswyg en version readonly
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
         
@@ -517,24 +553,22 @@ class NotesAdmin(ModelAdmin):
         return exclude
 
 
-
 class LinkNotesInline(TabularInline):
     model = Note
     extra = 0
     
     #fields = ['text']
     exclude = ['user', 'text']
-    readonly_fields = ['quillField_readonly_text', 'edit_button']
+    readonly_fields = ['wysiswyg_readonly_text', 'edit_button']
 
-    # Corregimos la version readonly del QuillField (por default muestra JSON)    
+    # Corregimos la version readonly del Wysiswyg    
     @admin.display(description="Text")
-    def quillField_readonly_text(self, obj):
-        return format_html(obj.text.html)
+    def wysiswyg_readonly_text(self, obj):
+        return mark_safe(obj.text)
     
     @admin.display(description="Edit")
     def edit_button(self, obj):
-        url = reverse('admin:app_note_change', args=[obj.id])
-        
+        url = reverse('admin:app_note_change', args=[obj.id])   
         return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
 
 
@@ -555,24 +589,6 @@ class LinkNotesInline(TabularInline):
         if request.user.is_superuser:
             return True   
         return False
-
-    # Corregimos la version readonly del QuillField (por default muestra JSON)
-    # def get_readonly_fields(self, request, obj=None):
-    #     readonly = super().get_readonly_fields(request, obj)
-
-    #     if obj and "quillField_readonly_text" not in readonly: 
-    #         print('[LOG] - LinkNotesInline.get_readonly_fields: quillField Readonly Mejorado')
-    #         # este append no hace nada, Investigar!
-    #         readonly.append("quillField_readonly_text")
-    #     return readonly
-
-    # Excluimos "text" original porque ya estamos mostrando el QuillField en version readonly
-    # def get_exclude(self, request, obj=None):
-    #     exclude = super().get_exclude(request, obj)
-        
-    #     if obj and "text" not in exclude:
-    #             exclude.append('text')
-    #     return exclude
 
     class Media:
         css = {    # ↓ ↓ ↓ ↓ ↓ ↓ Here ↓ ↓ ↓ ↓ ↓ ↓

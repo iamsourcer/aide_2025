@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import naturaltime
-from django_quill.fields import QuillField
+
 
 
 
@@ -122,6 +122,7 @@ class Candidate(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidates")
 
     resume = models.FileField("resume", null=True, blank=True, default=None)
+    parsed_resume = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -139,6 +140,12 @@ class Candidate(models.Model):
     class Meta:
         unique_together = ["phone", "email"]
         ordering = ["-updated_at"]
+    
+    # hacemos el override del save - si hay resume parseamos y metemos todo en parsed_resume 
+    # def save(self, *args, **kwargs):
+    #     if not self.resume:  
+
+    #     super().save(*args, **kwargs)
 
 class Link(models.Model):
     class StatusChoices(models.TextChoices):
@@ -191,8 +198,7 @@ class Link(models.Model):
 
 class Note(models.Model):
 
-    #text = models.TextField()
-    text = QuillField()
+    text = models.TextField()
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name='notes')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notes')
     created_at = models.DateTimeField(auto_now_add=True)

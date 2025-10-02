@@ -18,8 +18,8 @@
 * Lo ponemos en produccion 
 
 
-# revisar Link (con relacion a las notes) ... si te animas cagon
-
+# dentro del candidato (model) crear un campo de texto que no se muestre en el admin y que se auto-popule con el texto del pdf cuando corresponda
+  si hay un pdf ahi, entonces en este campo voy a tener el texto que extraje
 
 
 
