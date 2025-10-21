@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.db import models
 from django.contrib import admin, messages
@@ -30,7 +31,7 @@ from unfold.contrib.import_export.forms import (
     ImportForm,
     SelectableFieldsExportForm,
 )
-
+from unfold.sections import TableSection
 
 admin.site.unregister(User)
 admin.site.unregister(Group)
@@ -252,6 +253,16 @@ class CandidateNoteInline(NonrelatedTabularInline):
             "all": ("app/css/link_note_admin.css",)
         }   
 
+# Table for related records
+class CandidateTableSection(TableSection):
+    verbose_name = "Details"  # Displays custom table title
+    height = 300  # Force the table height. Ideal for large amount of records
+    related_name = "links"  # Related model field name
+    fields = ['project__name', 'status']  # Fields from related model
+
+    # Custom field
+    # def custom_field(self, instance):
+    #     return instance.pk
 
 @admin.register(Candidate)
 class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
@@ -271,13 +282,17 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         "get_owner",
     ]
 
+    list_sections = [
+        CandidateTableSection,
+    ]
+
     list_filter = [
         OwnerCandidateFilter,
         ProjectCandidateFilter,
         HasLinkFilter,
     ]
 
-    search_fields = ["first_name", "last_name", "location__name", "tags__name"]
+    search_fields = ["first_name", "last_name", "location__name", "tags__name"] #parsed_resume
 
     # Change
 
@@ -313,7 +328,7 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
             "Files",
             {
                 "classes": ["tab"],
-                "fields": ["resume"],
+                "fields": ["resume", "parsed_resume"],
             },
         ),
 
@@ -339,37 +354,135 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         span = '<span class="bg-primary-500 text-white text-xs font-medium me-2 px-2.5 py-0.5 rounded">{}</span>'
         return format_html_join(" ", span, tags)
 
+    # @admin.display(description='Extract')
+    # def get_resume_extract(self, obj):
+    #     search_query = self.request.GET.get('q', '')
+    #     if 'resume:' in search_query:
+    #         search_term = search_query.split(':')[1].lower()
+    #         match_index = re.search(search_term, obj.parsed_resume.lower())
+    #         print('\t[LOG] - get_resume_extract  - match_index >>', match_index)
+    #         if match_index is not None:
+    #             match_index = match_index.start()    
+    #             print('\t[LOG] - get_resume_extract  - FOUND! >>', obj.parsed_resume[match_index:match_index + 50])
+    #         else:
+    #             print('\t[LOG] - get_resume_extract >> NOT FOUND!')
+    #             return ''
+            
+    #     return obj.parsed_resume[match_index:match_index + 50]
+
+    @admin.display(description='Extract')
+    def get_resume_extract(self, obj):
+        search_query = self.request.GET.get('q', '')
+        if 'resume:' not in search_query:
+            return '-'
+
+        search_term = search_query.split(':')[1].strip().lower()
+        print('\t[LOG] - get_resume_extract - Search Term: ', search_term)
+
+        if not obj.parsed_resume:
+            print('\t[LOG] - get_resume_extract - no resume here ')
+            return '-'
+
+        match_index = obj.parsed_resume.lower().find(search_term)
+        if match_index == -1:
+            return '-'
+        
+        print('\t[LOG] - get_resume_extract - match found! ')
+
+        EXTRACT_LENGHT = 50
+        ini = match_index - EXTRACT_LENGHT if match_index - EXTRACT_LENGHT > 0 else 0
+        fin = match_index + EXTRACT_LENGHT
+        extract = obj.parsed_resume[ini:fin]
+        return extract
+
+        # # Create a case-insensitive regex pattern with a replacement for highlighting
+        # pattern = re.compile(re.escape(search_term), re.IGNORECASE)
+        # highlighted_resume = pattern.sub(f'<span style="background-color: yellow;">{search_term}</span>', obj.parsed_resume)
+
+        # match_index = re.search(search_term, obj.parsed_resume.lower()).start()
+        # print('\t[LOG] - get_resume_extract - match_index >>', match_index)
+        # if match_index is not None:
+        #     print('\t[LOG] - get_resume_extract - FOUND! >>', highlighted_resume[:200]) 
+        # else:
+        #     print('\t[LOG] - get_resume_extract >> NOT FOUND!')
+        #     return ''
+        # return mark_safe(highlighted_resume[match_index:match_index*2])
+        
+            
+
     def get_list_display(self, request):
-        user_filtered = request.GET.get("owner", None)
-        is_user_filtered = user_filtered is not None
 
         list_display = super().get_list_display(request)
-        if is_user_filtered and "get_owner" in list_display:
-            list_display.remove("get_owner")
+        search_query = self.request.GET.get('q', '')
+        
+        if 'resume:' in search_query:
+            return ['get_full_name', 'get_resume_extract']
 
-        elif not is_user_filtered and "get_owner" not in list_display:
-            list_display.append("get_owner")
-        return list_display
+        else:
+            user_filtered = self.request.GET.get("owner", None)
+            is_user_filtered = user_filtered is not None
+            
+            if is_user_filtered and "get_owner" in list_display:
+                list_display.remove("get_owner")
 
-    def get_search_results(self, request, queryset, search_term):
-        print('[LOG] - search terms:', search_term)
-        SEARCH_OPERATOR = '|'
-        if SEARCH_OPERATOR not in search_term:
+            elif not is_user_filtered and "get_owner" not in list_display:
+                list_display.append("get_owner")
+            return list_display 
+
+    def get_search_results(self, request, queryset, search_term, logs=False):
+        
+        if logs:
+            print('\t[LOG] - get_search_results - search terms:', search_term)
+        
+        if 'tags:' not in search_term and 'resume:' not in search_term:
+            if logs:
+                print('\t[LOG] - get_search_results - busqueda normal, search_terms:', search_term)
             return super().get_search_results(
                 request,
                 queryset,
                 search_term,
             )
 
-        print('[LOG] - Procesando busquedando con operador +')
-        search_terms = search_term.split(SEARCH_OPERATOR)
+        if 'tags:' in search_term:
+            if logs:
+                print('[LOG] - get_search_results - entramos a tags:')
+            # tags:python,sql,rosario
+            # search_terms = search_terms.split(':')[1]
+            search_term = search_term[5:]
+            search_terms = search_term.split(',')
+            if logs:
+                print('[LOG] - get_search_results - search terms "tags:" >>', (search_terms))
 
-        for term in search_terms:
-            term = term.strip()
-            queryset = queryset.filter(tags__name__icontains=term).distinct()
-            print('[LOG] - term:', term, 'Largo Queryset:', len(queryset))
-        # el segundo parametro le avisa si hay repetidos o son resultados limpios
-        # si fuera False saldrian los repetidos
+            for term in search_terms:
+                term = term.strip()
+                queryset = queryset.filter(tags__name__icontains=term).distinct()
+                if logs:
+                    print('[LOG] - get_search_results - term:', term, 'Largo Queryset:', len(queryset))
+            # el segundo parametro le avisa si hay repetidos o son resultados limpios
+            # si fuera False saldrian los repetidos
+        
+            return queryset, False
+        
+        if 'resume:' in search_term:
+            if logs:
+                print('[LOG] - get_search_results - entramos a resume:')
+           
+            search_term = search_term[7:]
+            if not search_term:
+                print('[LOG] - get_search_results - empty search term')
+                return Candidate.objects.none(), False
+            
+            search_terms = search_term.split(',')
+            if logs:
+                print('\t [LOG] - get_search_results - search terms "resume:" >>', (search_terms))
+
+            for term in search_terms:
+                term = term.strip()
+                queryset = queryset.filter(parsed_resume__icontains=term).distinct()
+                if logs:
+                    print('\t [LOG] - get_search_results - term:', term, 'Largo Queryset:', len(queryset))
+            return queryset, False
+
         return queryset, False
 
     def save_model(self, request, obj, form, change):

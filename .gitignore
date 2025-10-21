@@ -15,7 +15,7 @@ local_settings.py
 db.sqlite3
 
 # Media and static files (if not versioning media files)
-media/
+# media/
 staticfiles/
 
 # IDE/editor directories and files

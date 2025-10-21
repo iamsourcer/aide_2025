@@ -121,7 +121,7 @@ class Candidate(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="candidates")
 
-    resume = models.FileField("resume", null=True, blank=True, default=None)
+    resume = models.FileField("resume", null=True, blank=True, default=None, upload_to='candidate_resumes/')
     parsed_resume = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -142,34 +142,38 @@ class Candidate(models.Model):
         ordering = ["-updated_at"]
     
 
-    def extract_text_from_pdf(self, file_path):
+    def update_resume_text(self):
+        if not self.resume:
+            return
+        
+        # Use pdfplumber to extract text
         try:
-            with pdfplumber.open(file_path) as pdf:
+            print('[LOG] - update_resume_text:', self.resume.path)
+            with pdfplumber.open(self.resume.path) as pdf:
+
                 content = ""
                 for page in pdf.pages:
                     page_text = page.extract_text()
                     if page_text:
                         content += page_text + "\n"
+                self.parsed_resume = content
         
         except Exception as e:
             print(e)
 
 
-    # hacemos el override del save - si hay resume parseamos y metemos todo en parsed_resume 
-    def save(self, *args, **kwargs):
-         if self.resume:
-              
-             if self.resume and hasattr(self.resume, 'path'):
-                file_path = self.resume.path
+    def save(self, *args, **kw):
+        
+        original = None
+        if self.pk is not None:
+            original = Candidate.objects.get(pk=self.pk)
+        
+        super(Candidate, self).save(*args, **kw)
+        
+        if (original is None) or (original.resume != self.resume): 
+            self.update_resume_text()
+            super(Candidate, self).save(*args, **kw)
 
-                # 2. Use pdfplumber to extract text
-                content = self.extract_text_from_pdf(file_path)
-                
-                # 3. Save the extracted content into our search index
-                if content:
-                    parsed_resume = content
-                    print(parsed_resume)
-                    super().save(*args, **kwargs)
 
 class Link(models.Model):
     class StatusChoices(models.TextChoices):
