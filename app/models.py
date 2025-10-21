@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
-
+import pdfplumber
 
 
 # Create your models here.
@@ -141,11 +141,35 @@ class Candidate(models.Model):
         unique_together = ["phone", "email"]
         ordering = ["-updated_at"]
     
-    # hacemos el override del save - si hay resume parseamos y metemos todo en parsed_resume 
-    # def save(self, *args, **kwargs):
-    #     if not self.resume:  
 
-    #     super().save(*args, **kwargs)
+    def extract_text_from_pdf(self, file_path):
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                content = ""
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        content += page_text + "\n"
+        
+        except Exception as e:
+            print(e)
+
+
+    # hacemos el override del save - si hay resume parseamos y metemos todo en parsed_resume 
+    def save(self, *args, **kwargs):
+         if self.resume:
+              
+             if self.resume and hasattr(self.resume, 'path'):
+                file_path = self.resume.path
+
+                # 2. Use pdfplumber to extract text
+                content = self.extract_text_from_pdf(file_path)
+                
+                # 3. Save the extracted content into our search index
+                if content:
+                    parsed_resume = content
+                    print(parsed_resume)
+                    super().save(*args, **kwargs)
 
 class Link(models.Model):
     class StatusChoices(models.TextChoices):
