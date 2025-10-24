@@ -376,25 +376,39 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         if 'resume:' not in search_query:
             return '-'
 
+        print('\n\t[LOG] - get_resume_extract - Search QUERY:', search_query)
+
         search_term = search_query.split(':')[1].strip().lower()
-        print('\t[LOG] - get_resume_extract - Search Term: ', search_term)
+        print('\t[LOG] - get_resume_extract - Search Term:', search_term)
+
+        search_terms = search_term.split('+')
+        print('\t[LOG] - get_resume_extract - Search Terms:', search_terms)
+
 
         if not obj.parsed_resume:
             print('\t[LOG] - get_resume_extract - no resume here ')
             return '-'
-
-        match_index = obj.parsed_resume.lower().find(search_term)
-        if match_index == -1:
-            return '-'
         
-        print('\t[LOG] - get_resume_extract - match found! ')
+        # cmo deberia ser mi extracto para varios terminos?
+        extracts = []
+        for search_term in search_terms:
+            match_index = obj.parsed_resume.lower().find(search_term)
+            if match_index == -1:
+                return '-'
+            
+            term_found = obj.parsed_resume[match_index:match_index + len(search_term)]
+            print('\t[LOG] - get_resume_extract - match found!:', term_found)
 
-        EXTRACT_LENGHT = 50
-        ini = match_index - EXTRACT_LENGHT if match_index - EXTRACT_LENGHT > 0 else 0
-        fin = match_index + EXTRACT_LENGHT
-        extract = obj.parsed_resume[ini:fin]
-        return extract
+            EXTRACT_LENGHT = 50
+            ini = match_index - EXTRACT_LENGHT if match_index - EXTRACT_LENGHT > 0 else 0
+            fin = match_index + EXTRACT_LENGHT + len(search_term)
+            extract = obj.parsed_resume[ini:fin]
 
+            extract = ' '.join(extract.split(' ')[1:-1])  # Tiramos la primera y ultima palabra por si esta cortada
+            extract += '...'
+            extract = extract.replace(term_found, f'<span style="color:black; background-color: yellow; padding:0px 8px; border-radius:.25rem;">{term_found}</span>')
+            extracts.append(extract)
+        return mark_safe('<br>'.join(extracts)) 
         # # Create a case-insensitive regex pattern with a replacement for highlighting
         # pattern = re.compile(re.escape(search_term), re.IGNORECASE)
         # highlighted_resume = pattern.sub(f'<span style="background-color: yellow;">{search_term}</span>', obj.parsed_resume)
@@ -449,7 +463,7 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
             # tags:python,sql,rosario
             # search_terms = search_terms.split(':')[1]
             search_term = search_term[5:]
-            search_terms = search_term.split(',')
+            search_terms = search_term.split('+')
             if logs:
                 print('[LOG] - get_search_results - search terms "tags:" >>', (search_terms))
 
@@ -465,22 +479,22 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         
         if 'resume:' in search_term:
             if logs:
-                print('[LOG] - get_search_results - entramos a resume:')
+                print('\t[LOG] - get_search_results - entramos a resume:')
            
             search_term = search_term[7:]
             if not search_term:
-                print('[LOG] - get_search_results - empty search term')
+                print('\t[LOG] - get_search_results - empty search term')
                 return Candidate.objects.none(), False
             
-            search_terms = search_term.split(',')
+            search_terms = search_term.split('+')
             if logs:
-                print('\t [LOG] - get_search_results - search terms "resume:" >>', (search_terms))
+                print('\t[LOG] - get_search_results - search terms "resume:" >>', (search_terms))
 
             for term in search_terms:
                 term = term.strip()
                 queryset = queryset.filter(parsed_resume__icontains=term).distinct()
-                if logs:
-                    print('\t [LOG] - get_search_results - term:', term, 'Largo Queryset:', len(queryset))
+            if logs:
+                print('\t[LOG] - get_search_results - results', term, 'Largo Queryset:', len(queryset),'\n')
             return queryset, False
 
         return queryset, False
