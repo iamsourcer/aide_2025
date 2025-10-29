@@ -205,9 +205,11 @@ class CandidateNoteInline(NonrelatedTabularInline):
     
     @admin.display(description="Edit")
     def edit_button(self, obj):
-        url = reverse('admin:app_note_change', args=[obj.id])   
-        return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
-
+        # print('[LOG] - candidateNoteInline - edit_button - NOTE_OWNER:', obj.user, 'LOG_USER:', self.request.user)
+        if self.request.user == obj.user:
+            url = reverse('admin:app_note_change', args=[obj.id])   
+            return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
+        return '-'
 
     def get_form_queryset(self, obj):
         """
@@ -224,6 +226,12 @@ class CandidateNoteInline(NonrelatedTabularInline):
             notes = notes.union(l.notes.all())
         return notes 
         # return self.model.objects.all()
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        # Asigna el request a self.request del Inline
+        self.request = request 
+        return super().get_formset(request, obj, **kwargs)
+
 
     def save_new_instance(self, parent, instance):
         """
@@ -392,6 +400,7 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         # cmo deberia ser mi extracto para varios terminos?
         extracts = []
         for search_term in search_terms:
+
             match_index = obj.parsed_resume.lower().find(search_term)
             if match_index == -1:
                 return '-'
@@ -399,16 +408,30 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
             term_found = obj.parsed_resume[match_index:match_index + len(search_term)]
             print('\t[LOG] - get_resume_extract - match found!:', term_found)
 
-            EXTRACT_LENGHT = 50
+            # Antes de generar un nuevo extract verificamos si el termino aparece en algun extracto anterior
+            term_in_extract = False
+            for i in range(len(extracts)):
+                extract = extracts[i]
+                if term_found in extract:
+                    print('\t[LOG] - get_resume_extract - term found in previous extract:', term_found)
+                    updated_extract = extract.replace(term_found, f'<span style="color:black; background-color: yellow; padding:0px 1px; border-radius:.25rem;">{term_found}</span>')
+                    extracts[i] = updated_extract
+                    term_in_extract = True
+                    break
+            if term_in_extract:
+                continue
+
+            EXTRACT_LENGHT = 80
             ini = match_index - EXTRACT_LENGHT if match_index - EXTRACT_LENGHT > 0 else 0
             fin = match_index + EXTRACT_LENGHT + len(search_term)
             extract = obj.parsed_resume[ini:fin]
 
             extract = ' '.join(extract.split(' ')[1:-1])  # Tiramos la primera y ultima palabra por si esta cortada
             extract += '...'
-            extract = extract.replace(term_found, f'<span style="color:black; background-color: yellow; padding:0px 8px; border-radius:.25rem;">{term_found}</span>')
+            extract = extract.replace(term_found, f'<span style="color:black; background-color: yellow; padding:0px 1px; border-radius:.25rem;">{term_found}</span>')
             extracts.append(extract)
         return mark_safe('<br>'.join(extracts)) 
+
         # # Create a case-insensitive regex pattern with a replacement for highlighting
         # pattern = re.compile(re.escape(search_term), re.IGNORECASE)
         # highlighted_resume = pattern.sub(f'<span style="background-color: yellow;">{search_term}</span>', obj.parsed_resume)
@@ -421,8 +444,14 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         #     print('\t[LOG] - get_resume_extract >> NOT FOUND!')
         #     return ''
         # return mark_safe(highlighted_resume[match_index:match_index*2])
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        # 1. Obtiene el formset base.
+        formset = super().get_formset(request, obj, **kwargs)
         
-            
+        # 2. Asigna el request al formset (¡Crucial para el Inline!)
+        formset.request = request 
+        return formset
 
     def get_list_display(self, request):
 
@@ -695,7 +724,11 @@ class LinkNotesInline(TabularInline):
     
     @admin.display(description="Edit")
     def edit_button(self, obj):
-        url = reverse('admin:app_note_change', args=[obj.id])   
+
+        if obj.user != self.request.user:
+            return '-'
+
+        url = reverse('admin:app_note_change', args=[obj.id])
         return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
 
 
@@ -722,6 +755,10 @@ class LinkNotesInline(TabularInline):
             "all": ("app/css/link_note_admin.css",)
         }      
 
+    def get_formset(self, request, obj=None, **kwargs):
+        # Asigna el request a self.request del Inline
+        self.request = request 
+        return super().get_formset(request, obj, **kwargs)
     
 @admin.register(Link)
 class LinkAdmin(ModelAdmin):
@@ -798,3 +835,11 @@ class LinkAdmin(ModelAdmin):
         if obj.user == request.user:
             return obj.notes.count() == 0  # borramos link si no tiene notas
         return False
+
+    def get_formset(self, request, obj=None, **kwargs):
+        # 1. Obtiene el formset base.
+        formset = super().get_formset(request, obj, **kwargs)
+        
+        # 2. Asigna el request al formset (¡Crucial para el Inline!)
+        formset.request = request 
+        return formset
