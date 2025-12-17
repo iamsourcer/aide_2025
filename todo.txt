@@ -1,5 +1,7 @@
 # TODO
 
+# agregar filtro "my notes" en notes
+
 * Terminar las notes como inline en el candidato
   - Mostrar projecto en cada nota
   - revisar que mas se puede agregar 
@@ -17,9 +19,6 @@
 
 * Lo ponemos en produccion 
 
-
-# dentro del candidato (model) crear un campo de texto que no se muestre en el admin y que se auto-popule con el texto del pdf cuando corresponda
-  si hay un pdf ahi, entonces en este campo voy a tener el texto que extraje
 
 
 

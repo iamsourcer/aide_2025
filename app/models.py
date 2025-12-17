@@ -225,10 +225,11 @@ class Link(models.Model):
     
 
 class Note(models.Model):
-
-    text = models.TextField()
+    
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name='notes')
+    text = models.TextField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notes')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

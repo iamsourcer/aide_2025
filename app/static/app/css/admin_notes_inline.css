@@ -1,0 +1,18 @@
+.column-text,
+.column-wysiswyg_readonly_text,
+.column-edit_button {
+    display: none;
+}
+
+td.field-edit_button > div {
+    padding: 0;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.dynamic-notes > td:nth-child(1) > div:nth-child(1) > div:nth-child(1),
+.dynamic-app-note > td:nth-child(1) > div:nth-child(1) > div:nth-child(1) {
+    max-width: none !important;
+    width: 100% !important;
+}

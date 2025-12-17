@@ -78,6 +78,7 @@ class TagAdmin(ModelAdmin):
         obj.user = request.user
         super().save_model(request, obj, form, change)
 
+
 class ProjectCandidateFilter(admin.SimpleListFilter):
     title = "Project"
     parameter_name = "project"
@@ -93,6 +94,7 @@ class ProjectCandidateFilter(admin.SimpleListFilter):
                 links__project__status=Project.StatusChoices.OPEN,
             ).distinct()
         return queryset
+
 
 class OwnerCandidateFilter(admin.SimpleListFilter):
     title = "Owner"
@@ -111,6 +113,7 @@ class OwnerCandidateFilter(admin.SimpleListFilter):
             print(queryset.filter(user=request.user))
             return queryset.filter(user=request.user)
         return queryset
+
 
 class HasLinkFilter(admin.SimpleListFilter):
 
@@ -136,6 +139,7 @@ class HasLinkFilter(admin.SimpleListFilter):
 
         elif self.value() == "no_link":
             return queryset.filter(links__isnull=True)
+
 
 class TagsListFilter(admin.SimpleListFilter):
 
@@ -171,6 +175,43 @@ class TagsListFilter(admin.SimpleListFilter):
         print("[LOG] - TagListFilter.queryset - filtrando por >> ", self.value())
         return queryset.filter(tags__name=self.value())
 
+
+class OwnerNotesFilter(admin.SimpleListFilter):
+    title = "Owner"
+    parameter_name = 'owner'
+
+    def lookups(self, request, model_admin):
+
+        return [
+            ("mine", "Mine"),
+        ]
+    
+    def queryset(self, request, queryset):
+        
+        if self.value() == 'mine':
+            print('[LOG] - OwnerCandidateFilter - user_logged >', request.user)
+            print(queryset.filter(user=request.user))
+            return queryset.filter(user=request.user)
+        return queryset
+
+class OwnerProjectFilter(admin.SimpleListFilter):
+    title = "Owner"
+    parameter_name = 'owner'
+
+    def lookups(self, request, model_admin):
+
+        return [
+            ("mine", "Mine"),
+        ]
+    
+    def queryset(self, request, queryset):
+        
+        if self.value() == 'mine':
+            print('[LOG] - OwnerCandidateFilter - user_logged >', request.user)
+            print(queryset.filter(user=request.user))
+            return queryset.filter(user=request.user)
+        return queryset
+
 class CandidateLinkInline(TabularInline):
     model = Link
     extra = 0
@@ -190,6 +231,7 @@ class CandidateLinkInline(TabularInline):
             return self.readonly_fields + ('project',)
         return self.readonly_fields
 
+
 class CandidateNoteInline(NonrelatedTabularInline):
     model = Note
     exclude = ["link", "text", "user"]  # Ignore property to display all fields
@@ -208,8 +250,8 @@ class CandidateNoteInline(NonrelatedTabularInline):
         # print('[LOG] - candidateNoteInline - edit_button - NOTE_OWNER:', obj.user, 'LOG_USER:', self.request.user)
         if self.request.user == obj.user:
             url = reverse('admin:app_note_change', args=[obj.id])   
-            return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
-        return '-'
+            return format_html(f'<a class="related-widget-wrapper-link view-related cursor-pointer flex items-center h-9.5 justify-center shrink-0 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">edit</span></a>')
+        return format_html(f'<a class="related-widget-wrapper-link view-related cursor-not-allowed flex items-center h-9.5 justify-center shrink-0 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200"><span style="color:#aaa7a7" class="material-symbols-outlined text-sm ">edit_off</span></a>')
 
     def get_form_queryset(self, obj):
         """
@@ -231,7 +273,6 @@ class CandidateNoteInline(NonrelatedTabularInline):
         # Asigna el request a self.request del Inline
         self.request = request 
         return super().get_formset(request, obj, **kwargs)
-
 
     def save_new_instance(self, parent, instance):
         """
@@ -258,7 +299,7 @@ class CandidateNoteInline(NonrelatedTabularInline):
   
     class Media:
         css = {    # ↓ ↓ ↓ ↓ ↓ ↓ Here ↓ ↓ ↓ ↓ ↓ ↓
-            "all": ("app/css/link_note_admin.css",)
+            "all": ("app/css/admin_notes_inline.css",)
         }   
 
 # Table for related records
@@ -287,7 +328,7 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
         "location",
         "get_tags",
         "get_last_updated_date",
-        "get_owner",
+        # "get_owner",
     ]
 
     list_sections = [
@@ -456,20 +497,16 @@ class CandidateAdmin(ModelAdmin, ImportExportModelAdmin):
     def get_list_display(self, request):
 
         list_display = super().get_list_display(request)
-        search_query = self.request.GET.get('q', '')
+        search_query = request.GET.get('q', '')
         
         if 'resume:' in search_query:
             return ['get_full_name', 'get_resume_extract']
 
         else:
-            user_filtered = self.request.GET.get("owner", None)
-            is_user_filtered = user_filtered is not None
+            is_owner_filtered = 'owner' in request.GET.keys()
             
-            if is_user_filtered and "get_owner" in list_display:
-                list_display.remove("get_owner")
-
-            elif not is_user_filtered and "get_owner" not in list_display:
-                list_display.append("get_owner")
+            if not is_owner_filtered:
+                return list_display + ['get_owner']
             return list_display 
 
     def get_search_results(self, request, queryset, search_term, logs=False):
@@ -592,8 +629,10 @@ class ProjectAdmin(ModelAdmin):
         "company",
         "get_creation_date",
         "count_candidates",
-        "get_owner",
+        # "get_owner",
     ]
+
+    list_filter = [OwnerProjectFilter]
 
     exclude = ['user']
     # Change
@@ -626,28 +665,37 @@ class ProjectAdmin(ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         super().save_model(request, obj, form, change)
+   
+    def get_list_display(self, request):
+        
+        list_display = super().get_list_display(request)
+        is_owner_filtered = 'owner' in request.GET.keys()
+  
+        if not is_owner_filtered:
+            return list_display + ['get_owner']
 
+        return list_display
 
 @admin.register(Note)
 class NotesAdmin(ModelAdmin):
-    list_display = ["link__project", "link__candidate", "updated_at", "get_owner"]
+    list_display = ["link__project", "link__candidate", "updated_at"]  # +  ['get_owner'] dependiendo del filtro owner
+    list_filter = [OwnerNotesFilter]
+
+    # change view
+    # fields = ['link', 'text', 'wysiswyg_readonly_text']
     exclude = ["user"]
     readonly_fields = []
 
+    # sobreescribimos la forma que el admin opera sobre los campos de tipo TextField
     formfield_overrides = {
         models.TextField: {
             "widget": WysiwygWidget,
         }
     }
 
-    conditional_fields = {
-        "text": "user == true"
-    }
-
     # Corregimos la version readonly del Wysiswyg    
     @admin.display(description="Text")
     def wysiswyg_readonly_text(self, obj):
-        #return format_html(obj.text)
         return mark_safe(obj.text)
 
     @admin.display(description="Owner")
@@ -655,7 +703,6 @@ class NotesAdmin(ModelAdmin):
         return obj.user.first_name
     
     # sobreescrituras 
-
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         super().save_model(request, obj, form, change)
@@ -680,34 +727,31 @@ class NotesAdmin(ModelAdmin):
             return True
         return False
 
-    # Corregimos la version readonly del Wysiswyg 
-    def get_readonly_fields(self, request, obj=None):
-        readonly = super().get_readonly_fields(request, obj)
-        
-        if not obj:
-            return [] # por default no hay campos readonly
-        if obj.user != request.user:
-            if "wysiswyg_readonly_text" not in readonly: 
-                readonly.append("wysiswyg_readonly_text")
+    def get_fields(self, request, obj=None):
+
+        # si el usuario no es propietario de la nota mostramos el texto en version readonly
+        if obj and obj.user != request.user:
+            return ['link', 'wysiswyg_readonly_text']
         else:
-            if "wysiswyg_readonly_text" in readonly: 
-                readonly.remove("wysiswyg_readonly_text")
+            return ['link', 'text']
+    
+    def get_readonly_fields(self, request, obj=None):
+        # si voy a editar una nota (mia), el link tiene que ser readonly
+        readonly = super().get_readonly_fields(request, obj)
+
+        if obj:
+            return ['link']
         return readonly
 
-    # Excluimos "text" original porque ya estamos mostrando el Wysiswyg en version readonly
-    def get_exclude(self, request, obj=None):
-        exclude = super().get_exclude(request, obj)
-        
-        if not obj:
-            return ["user"]
-        if obj.user != request.user:
-            if "text" not in exclude:
-                exclude.append('text')
-        else:
-            if "text" in exclude:
-                exclude.remove('text')
-        return exclude
+    def get_list_display(self, request, obj=None):
+        list_display = super().get_list_display(request)
 
+        is_owner_filtered = 'owner' in request.GET.keys()
+                
+        if not is_owner_filtered:
+            return list_display + ['get_owner']
+
+        return list_display 
 
 class LinkNotesInline(TabularInline):
     model = Note
@@ -724,12 +768,11 @@ class LinkNotesInline(TabularInline):
     
     @admin.display(description="Edit")
     def edit_button(self, obj):
-
-        if obj.user != self.request.user:
-            return '-'
-
-        url = reverse('admin:app_note_change', args=[obj.id])
-        return format_html(f'<a class="related-widget-wrapper-link view-related bg-white border cursor-pointer flex items-center h-9.5 justify-center ml-2 rounded shadow-sm shrink-0 text-gray-400 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">visibility</span></a>')
+        # print('[LOG] - candidateNoteInline - edit_button - NOTE_OWNER:', obj.user, 'LOG_USER:', self.request.user)
+        if self.request.user == obj.user:
+            url = reverse('admin:app_note_change', args=[obj.id])   
+            return format_html(f'<a class="related-widget-wrapper-link view-related cursor-pointer flex items-center h-9.5 justify-center shrink-0 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200" href="{url}"><span class="material-symbols-outlined text-sm">edit</span></a>')
+        return format_html(f'<a class="related-widget-wrapper-link view-related cursor-not-allowed flex items-center h-9.5 justify-center shrink-0 text-sm w-9.5 hover:text-gray-700 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-200"><span style="color:#aaa7a7" class="material-symbols-outlined text-sm ">edit_off</span></a>')
 
 
     def has_add_permission(self, request, obj=None):
@@ -752,7 +795,7 @@ class LinkNotesInline(TabularInline):
 
     class Media:
         css = {    # ↓ ↓ ↓ ↓ ↓ ↓ Here ↓ ↓ ↓ ↓ ↓ ↓
-            "all": ("app/css/link_note_admin.css",)
+            "all": ("app/css/admin_notes_inline.css",)
         }      
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -772,7 +815,7 @@ class LinkAdmin(ModelAdmin):
                     "status",
                     "get_notes_counter",
                     "get_last_updated_date",
-                    "get_owner",
+                    # "get_owner",
     ]
     
     search_fields = ['candidate__first_name', 'candidate__last_name', 'project__name', 'project__company__name']
@@ -811,15 +854,13 @@ class LinkAdmin(ModelAdmin):
     
     # Esta es la manera horrible que tiene Django
     def get_list_display(self, request):
-        user_filtered = request.GET.get("owner", None)
-        is_user_filtered = user_filtered is not None
-
+        
         list_display = super().get_list_display(request)
-        if is_user_filtered and "get_owner" in list_display:
-            list_display.remove("get_owner")
+        is_owner_filtered = 'owner' in request.GET.keys()
+  
+        if not is_owner_filtered:
+            return list_display + ['get_owner']
 
-        elif not is_user_filtered and "get_owner" not in list_display:
-            list_display.append("get_owner")
         return list_display
 
     def get_readonly_fields(self, request, obj=None):

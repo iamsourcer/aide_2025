@@ -2,7 +2,7 @@
 
 ### notes
  - CREAR: todos
- - EDITAR: owner
+ - EDITAR: owner - puede editar el texto pero no cambiar el link
  - BORRAR: nadie
 
 
